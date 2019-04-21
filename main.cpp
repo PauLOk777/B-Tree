@@ -445,17 +445,13 @@ string BTreeNode::interpolationSearch(int k)
 			counter++;
 			return elems[mid].data;
 		}
-		if (mid < end) {
-			if (k > elems[mid].key && k < elems[mid + 1].key && !leaf) {
+		if (mid < end && k > elems[mid].key && k < elems[mid + 1].key && !leaf) {
 				counter++;
 				return C[mid + 1]->interpolationSearch(k);
-			}
 		}
-		if (mid > begin) {
-			if (k > elems[mid - 1].key && k < elems[mid].key && !leaf) {
+		if (mid > begin && k > elems[mid - 1].key && k < elems[mid].key && !leaf) {
 				counter++;
 				return C[mid]->interpolationSearch(k);
-			}
 		}
 		if (elems[begin].key == k) {
 			counter++;
@@ -553,14 +549,6 @@ int main() {
 	tree.traverse();
 	cout << endl;
 	while (true) {
-		cout << "Input key which you wanna delete (if you wanna stop type quit): ";
-		cin >> num;
-		if (num == "quit") { break; }
-		tree.remove(stoi(num));
-	}
-	tree.traverse();
-	cout << endl;
-	while (true) {
 		cout << "Input key which you wanna find (if you wanna stop type quit): ";
 		cin >> num;
 		if (num == "quit") { break; }
@@ -568,6 +556,14 @@ int main() {
 		cout << "Comparisons: " << counter << endl;
 		counter = 0;
 	}
+	cout << endl;
+	while (true) {
+		cout << "Input key which you wanna delete (if you wanna stop type quit): ";
+		cin >> num;
+		if (num == "quit") { break; }
+		tree.remove(stoi(num));
+	}
+	tree.traverse();
 
 	delete[] Array;
 	system("pause");
