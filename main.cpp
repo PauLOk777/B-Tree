@@ -1,9 +1,11 @@
 #include <iostream>
 #include <ctime>
 #include <string>
+#include <fstream>
 
 using namespace std;
-
+#define INPUT_FILE "input.txt"
+#define OUTPUT_FILE "input.txt"
 int counter = 0;
 
 class elem {
@@ -21,23 +23,26 @@ class BTreeNode
 	bool leaf; 
 
 public:
-
+	static string buff;
 	BTreeNode(int _t, bool _leaf); 
 
 	void traverse();
 
 	void singleTraverse() {
 		cout << "{";
+		buff += "{";
 		for (int i = 0; i < n; i++) {
 			if ((n - i) == 1) {
+				buff += to_string(elems[i].key);
 				cout << elems[i].key;
 			}
 			else {
 				cout << elems[i].key << ", ";
+				buff += to_string(elems[i].key) + ", ";
 			}
 		}
 		cout << "} ";
-		
+		buff += "} ";
 	}
 
 	string interpolationSearch(int k);
@@ -69,6 +74,8 @@ public:
 	friend class BTree;
 };
 
+string BTreeNode::buff = "";
+
 class BTree
 {
 	BTreeNode *root;
@@ -81,10 +88,14 @@ public:
 		t = _t;
 	}
 
+	string getBuff() { return BTreeNode::buff; }
 	BTreeNode* getRoot() { return root; }
 
 	void traverse()
 	{
+		if (BTreeNode::buff != "") {
+			BTreeNode::buff = "";
+		}
 		if (root != NULL) root->traverse();
 	}
 
@@ -424,48 +435,56 @@ string BTreeNode::interpolationSearch(int k)
 	int end = n - 1;
 	int mid;
 	if (!leaf) {
+		counter++;
 		if (k < elems[begin].key){
-			counter++;
 			return C[begin]->interpolationSearch(k);
 		}
+		counter++;
 		if (k > elems[end].key) {
-			counter++;
 			return C[end + 1]->interpolationSearch(k);
 		}
 	}
 	while (true)
 	{	
-		if (k > elems[end].key) return "Key wasn't found.";
+		counter++;
+		if (k > elems[end].key) return "Key wasn't found.";		
+		counter++;
 		if (k < elems[begin].key) return "Key wasn't found.";
 		double temp = (k - elems[begin].key);
 		double temp_1 = (elems[end].key - elems[begin].key);
 		double temp_2 = temp / temp_1;
 		mid = begin + temp_2 * (end - begin);
+		counter++;
 		if (elems[mid].key == k) {
-			counter++;
 			return elems[mid].data;
 		}
+		counter++;
 		if (mid < end && k > elems[mid].key && k < elems[mid + 1].key && !leaf) {
 				counter++;
 				return C[mid + 1]->interpolationSearch(k);
 		}
+		counter++;
 		if (mid > begin && k > elems[mid - 1].key && k < elems[mid].key && !leaf) {
 				counter++;
 				return C[mid]->interpolationSearch(k);
 		}
+		counter++;
 		if (elems[begin].key == k) {
 			counter++;
 			return elems[begin].data;
 		}
+		counter++;
 		if (elems[end].key == k) {
 			counter++;
 			return elems[end].data;
 		}
+		counter++;
 		if (k > elems[mid].key) {
 			counter++;
 			begin = mid + 1;
 			continue;
 		}
+		counter++;
 		if (k < elems[mid].key) {
 			counter++;
 			end = mid - 1;
@@ -531,23 +550,94 @@ void showData(string *Data, int *Array, int size) {
 	cout << endl;
 }
 
-int main() {
-	int t;
-	cout << "Input parametr t: "; cin >> t;
-	BTree tree(t);
-	int size, *Array;
-	string  *Data, num;
-	cout << "Input size of array: "; cin >> size;
-	Array = new int[size];
-	Data = new string[size];
-	fillingArray(Array, size);
-	fillingData(Data, size);
-	showData(Data, Array, size);
-	for (int i = 0; i < size; i++) {
-		tree.insert(Array[i], Data[i]);
+istream& openfileINPUT(ifstream& fin, string name) {
+	fin.open(name);
+	if (!fin.is_open()) {
+		cout << "Error!" << endl;
+		system("pause");
+		exit(1);
 	}
-	tree.traverse();
-	cout << endl;
+	cout << "File was opened." << endl;
+	return fin;
+}
+
+int readFileParametr(string buff) {
+	string temp;
+	while(true) {
+		if (!isdigit(buff[0])) break;
+		temp += buff[0];
+		buff.erase(0, 1);
+	}
+	return stoi(temp);
+}
+
+void parseInfo(BTree &tree, string buff) {
+	string key, data;
+	int count = 0;
+	for (int i = 0; i < buff.length(); i++) {
+		if (buff[i] == 'i') {
+			for (int j = i + 2; ; j++) {
+				count++;
+				if (buff[j] == ',') break;
+				key += buff[j];
+			}
+			for (int j = i + count + 2; ; j++) {
+				if (buff[j] == ')') {
+					count = 0;
+					break;
+				}
+				data += buff[j];
+			}
+			tree.insert(stoi(key), data);
+			key = "";
+			data = "";
+		}
+		if (buff[i] == 'r') {
+			for (int j = i + 2; ; j++) {
+				if (buff[j] == ')') break;
+				key += buff[j];
+			}
+			tree.remove(stoi(key));
+			key = "";
+		}
+	}
+}
+
+ostream& FillDeleteSearch(ofstream &fout, BTree &tree) {
+	int number_1;
+	string num;
+	cout << "If you wanna fill our tree from random numbers press 1, if manually press another num: ";
+	cin >> number_1;
+	if (number_1 == 1) {
+		int size;
+		cout << "Input size of array: "; cin >> size;
+		int *Array = new int[size];
+		string *Data = new string[size];
+		fillingArray(Array, size);
+		fillingData(Data, size);
+		showData(Data, Array, size);
+		for (int i = 0; i < size; i++) {
+			tree.insert(Array[i], Data[i]);
+			fout << "i(" << Array[i] << "," << Data[i] << ")";
+		}
+		tree.traverse();
+		cout << endl;
+		delete[] Array;
+		delete[] Data;
+	}
+	else {
+		string temp_1 = "";
+		while (true) {
+			string key;
+			string data;
+			cout << "Input your number and data (if u wanna exit type quit): "; cin >> key >> data;
+			if (data == "quit") break;
+			fout << "i(" << key << "," << data << ")";
+			tree.insert(stoi(key), data);
+			tree.traverse();
+			cout << endl;
+		}
+	}
 	while (true) {
 		cout << "Input key which you wanna find (if you wanna stop type quit): ";
 		cin >> num;
@@ -561,11 +651,41 @@ int main() {
 		cout << "Input key which you wanna delete (if you wanna stop type quit): ";
 		cin >> num;
 		if (num == "quit") { break; }
+		fout << "r(" << num << ")";
 		tree.remove(stoi(num));
 	}
 	tree.traverse();
+	cout << endl;
+	return fout;
+}
 
-	delete[] Array;
+int main() {
+	ofstream fout;
+	int number_2;
+	cout << "If you wanna restore the last B-tree type 1, if no - any number: "; cin >> number_2;
+	if (number_2 == 1) {
+		ifstream fin;
+		string temp_2;
+		fout.open(OUTPUT_FILE, ofstream::app);
+		openfileINPUT(fin, INPUT_FILE);
+		getline(fin, temp_2);
+		BTree tree(readFileParametr(temp_2));
+		parseInfo(tree, temp_2);
+		tree.traverse();
+		cout << endl;
+		FillDeleteSearch(fout, tree);
+		fout.close();
+		fin.close();
+	}
+	else {
+		fout.open(OUTPUT_FILE);
+		int t, number_2;
+		cout << "Input parametr t: "; cin >> t; fout << t << " ";
+		BTree tree(t);
+		FillDeleteSearch(fout, tree);
+		fout.close();
+	}
+
 	system("pause");
 	return 0;
 }
