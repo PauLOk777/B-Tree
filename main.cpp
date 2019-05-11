@@ -47,6 +47,8 @@ public:
 
 	string interpolationSearch(int k);
 
+	BTreeNode* edit(int, string);
+
 	int findKey(int k);
 
 	void insertNonFull(int k, string base);
@@ -102,6 +104,11 @@ public:
 	string search(int k)
 	{
 		return (root == NULL) ? NULL : root->interpolationSearch(k);
+	}
+
+	BTreeNode* edit(int k, string info) 
+	{
+		return (root == NULL) ? NULL : root->edit(k, info);
 	}
 
 	void insert(int k, string base);
@@ -517,6 +524,21 @@ void BTree::remove(int k)
 	return;
 }
 
+BTreeNode* BTreeNode::edit(int k, string info) {
+	int i = 0;
+	while (i < n && k > elems[i].key)
+		i++;
+
+	if (elems[i].key == k) {
+		elems[i].data = info;
+		return this;
+	}
+	if (leaf == true)
+		return NULL;
+ 
+	return C[i]->edit(k, info);
+}
+
 void fillingArray(int *Array, int size) {
 	srand(time(NULL));
 	for (int i = 0; i < size; i++) {
@@ -600,43 +622,89 @@ void parseInfo(BTree &tree, string buff) {
 			tree.remove(stoi(key));
 			key = "";
 		}
+		if (buff[i] == 'e') {
+			for (int j = i + 2; ; j++) {
+				count++;
+				if (buff[j] == ',') break;
+				key += buff[j];
+			}
+			for (int j = i + count + 2; ; j++) {
+				if (buff[j] == ')') {
+					count = 0;
+					break;
+				}
+				data += buff[j];
+			}
+			tree.edit(stoi(key), data);
+			key = "";
+			data = "";
+		}
 	}
 }
 
-ostream& FillDeleteSearch(ofstream &fout, BTree &tree) {
+ostream& FillDeleteSearch(ofstream &fout, BTree &tree, int num_3) {
 	int number_1;
 	string num;
-	cout << "If you wanna fill our tree from random numbers press 1, if manually press another num: ";
-	cin >> number_1;
-	if (number_1 == 1) {
-		int size;
-		cout << "Input size of array: "; cin >> size;
-		int *Array = new int[size];
-		string *Data = new string[size];
-		fillingArray(Array, size);
-		fillingData(Data, size);
-		showData(Data, Array, size);
-		for (int i = 0; i < size; i++) {
-			tree.insert(Array[i], Data[i]);
-			fout << "i(" << Array[i] << "," << Data[i] << ")";
-		}
-		tree.traverse();
-		cout << endl;
-		delete[] Array;
-		delete[] Data;
-	}
-	else {
-		string temp_1 = "";
-		while (true) {
-			string key;
-			string data;
-			cout << "Input your number and data (if u wanna exit type quit): "; cin >> key >> data;
-			if (data == "quit") break;
-			fout << "i(" << key << "," << data << ")";
-			tree.insert(stoi(key), data);
+	if (num_3 != 1) {
+		cout << "If you wanna fill our tree from random numbers press 1, if manually press another num: ";
+		cin >> number_1;
+
+		if (number_1 == 1) {
+			int size;
+			cout << "Input size of array: "; cin >> size;
+			int* Array = new int[size];
+			string* Data = new string[size];
+			fillingArray(Array, size);
+			fillingData(Data, size);
+			showData(Data, Array, size);
+			for (int i = 0; i < size; i++) {
+				tree.insert(Array[i], Data[i]);
+				fout << "i(" << Array[i] << "," << Data[i] << ")";
+			}
 			tree.traverse();
 			cout << endl;
+			delete[] Array;
+			delete[] Data;
 		}
+		else {
+			string temp_1 = "";
+			while (true) {
+				string key;
+				string data;
+				cout << "Input your number and data (if u wanna exit type quit): "; cin >> key >> data;
+				if (data == "quit") break;
+				fout << "i(" << key << "," << data << ")";
+				tree.insert(stoi(key), data);
+				tree.traverse();
+				cout << endl;
+			}
+		}
+		cout << endl;
+	}
+	while (true) {
+		string temp_, information;
+		cout << "If you wanna add element type key (if you wanna stop type 'quit'): "; cin >> temp_;
+		if (temp_ == "quit") break;
+		cout << "Type information for this key: "; cin >> information;
+		fout << "i(" << temp_ << "," << information << ")";
+		tree.insert(stoi(temp_), information);
+	}
+	while (true) {
+		cout << "Input key which you wanna delete (if you wanna stop type quit): ";
+		cin >> num;
+		if (num == "quit") { break; }
+		fout << "r(" << num << ")";
+		tree.remove(stoi(num));
+	}
+	tree.traverse();
+	cout << endl;
+	while (true) {
+		string info = "";
+		cout << "Input key which you wanna edit (if you wanna stop type quit): "; cin >> num;
+		if (num == "quit") { break; }
+		cout << "Input new info for this key: "; cin >> info;
+		fout << "e(" << num << "," << info << ")";
+		tree.edit(stoi(num), info);
 	}
 	while (true) {
 		cout << "Input key which you wanna find (if you wanna stop type quit): ";
@@ -645,14 +713,6 @@ ostream& FillDeleteSearch(ofstream &fout, BTree &tree) {
 		cout << tree.search(stoi(num)) << endl;
 		cout << "Comparisons: " << counter << endl;
 		counter = 0;
-	}
-	cout << endl;
-	while (true) {
-		cout << "Input key which you wanna delete (if you wanna stop type quit): ";
-		cin >> num;
-		if (num == "quit") { break; }
-		fout << "r(" << num << ")";
-		tree.remove(stoi(num));
 	}
 	tree.traverse();
 	cout << endl;
@@ -673,16 +733,16 @@ int main() {
 		parseInfo(tree, temp_2);
 		tree.traverse();
 		cout << endl;
-		FillDeleteSearch(fout, tree);
+		FillDeleteSearch(fout, tree, number_2);
 		fout.close();
 		fin.close();
 	}
 	else {
 		fout.open(OUTPUT_FILE);
-		int t, number_2;
+		int t;
 		cout << "Input parametr t: "; cin >> t; fout << t << " ";
 		BTree tree(t);
-		FillDeleteSearch(fout, tree);
+		FillDeleteSearch(fout, tree, number_2);
 		fout.close();
 	}
 
